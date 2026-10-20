@@ -1,161 +1,217 @@
 # CloudDeploy 
 
-CloudDeploy Lite is a beginner-friendly cloud deployment platform designed to simplify deploying and managing web applications on cloud infrastructure.
+### Containerized Application Deployment Platform
+
+CloudDeploy is a self-service deployment platform that lets authenticated users create projects, upload application source code as ZIP archives, and manage Docker-based deployments through a web dashboard.
+
+The project focuses on backend engineering, REST API design, containerization, authentication, deployment lifecycle management, and automated testing.
+
+## Features
+
+- **User Authentication:** Registration, login, password hashing, and JWT-based authentication.
+- **Project Management:** Create, list, and access user-owned projects.
+- **Secure ZIP Uploads:** Validate uploaded archives, enforce file and size limits, require a root-level Dockerfile, and reject unsafe archive paths.
+- **Docker Deployment:** Build images and manage application containers through the backend.
+- **Deployment Monitoring:** Track deployment status, inspect logs, and view application URLs.
+- **Container Controls:** Stop and restart deployments, with resource restrictions and health checks.
+- **Web Dashboard:** React and TypeScript interface with project management, uploads, deployment controls, and error handling.
+- **Persistent Storage:** SQLite database for users, projects, and deployment records.
+
+## Tech Stack
+
+| Layer | Technologies |
+|---|---|
+| Frontend | React, TypeScript, Vite, CSS |
+| Backend | Python, FastAPI |
+| Database | SQLite, SQLAlchemy |
+| Authentication | JWT, bcrypt |
+| Containerization | Docker |
+| Testing | Pytest |
+| Cloud target | AWS EC2, subject to eligibility and cost verification |
+| Version control | Git, GitHub |
+
+## Architecture
+
+```text
+Browser
+   |
+   v
+React + TypeScript Dashboard
+   |
+   | Authenticated HTTP requests
+   v
+FastAPI REST API
+   |
+   +---- Authentication and authorization
+   |
+   +---- Project and ZIP upload management
+   |
+   +---- SQLite database
+   |
+   v
+Docker Deployment Engine
+   |
+   +---- Build application image
+   +---- Run container
+   +---- Monitor status and logs
+   +---- Stop / restart deployment
+   |
+   v
+Deployed Application
+```
 
 ## Project Structure
 
 ```text
-CloudDeploy/
-├── .github/
-│   └── workflows/
-│       └── ci.yml             # GitHub Actions CI workflow
+CloudDeploy-Lite/
 ├── backend/
 │   ├── app/
-│   │   ├── api/               # API routes and endpoints
-│   │   ├── core/              # Config, security, and settings
-│   │   ├── models/            # Database / ORM models
-│   │   ├── schemas/           # Pydantic schemas / request-response DTOs
-│   │   ├── services/          # Business logic and external service clients
-│   │   ├── __init__.py
-│   │   └── main.py            # FastAPI application entry point
-│   ├── tests/                 # Backend automated test suite
-│   └── requirements.txt       # Python dependencies
-├── frontend/                  # React + TypeScript + Vite UI
-├── sample-app/                # Sample application templates for deployment
-├── docs/                      # Project documentation and specifications
-├── .env.example               # Example environment variable template
-├── .gitignore                 # Git ignore rules
-└── README.md                  # Project overview and setup guide
+│   │   ├── api/
+│   │   ├── core/
+│   │   ├── models/
+│   │   ├── schemas/
+│   │   ├── services/
+│   │   └── main.py
+│   ├── tests/
+│   └── requirements.txt
+├── frontend/
+│   ├── src/
+│   ├── package.json
+│   └── vite.config.ts
+├── sample-app/
+├── docs/
+├── .github/
+│   └── workflows/
+├── .env.example
+├── .gitignore
+└── README.md
 ```
-
----
 
 ## Prerequisites
 
-Before running the project locally, ensure you have the following installed:
+Install the following before running the project:
 
-- **Python**: version 3.10+ (tested with Python 3.11)
-- **Node.js**: version 18+ (tested with Node.js v22)
-- **npm**: version 9+ (tested with npm 10.9)
+- Python and pip
+- Node.js and npm
+- Docker Desktop with a running Docker Engine for real deployments
+- Git
 
----
+## Local Setup
 
-## Local Setup & Run Guide
-
-### 1. Environment Configuration
-
-Copy the example environment file:
+### 1. Clone the repository
 
 ```bash
-# In the repository root
-cp .env.example .env
+git clone https://github.com/YOUR_USERNAME/CloudDeploy-Lite.git
+cd CloudDeploy-Lite
 ```
 
-### 2. Backend Setup & Run
+### 2. Start the backend
 
-1. Navigate to the backend directory and set up a Python virtual environment:
+In a terminal:
 
-   ```bash
-   cd backend
-   python -m venv .venv
-   ```
+```powershell
+cd backend
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
 
-2. Activate the virtual environment:
-   - On Windows (PowerShell):
-     ```powershell
-     .venv\Scripts\Activate.ps1
-     ```
-   - On Windows (CMD):
-     ```cmd
-     .venv\Scripts\activate.bat
-     ```
-   - On Linux/macOS:
-     ```bash
-     source .venv/bin/activate
-     ```
+Configure the required environment variables using `.env.example` as a reference. Do not commit real secrets.
 
-3. Install dependencies:
+Start the API:
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+```powershell
+python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
 
-4. Start the FastAPI development server:
+Backend health check: `http://127.0.0.1:8000/health`
 
-   ```bash
-   uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-   ```
+Interactive API documentation: `http://127.0.0.1:8000/docs`
 
-5. Verify the health endpoint:
-   - Open your browser or run:
-     ```bash
-     curl http://localhost:8000/health
-     ```
-   - Response: `{"status":"ok"}`
-   - API Docs: `http://localhost:8000/docs`
+### 3. Start the frontend
 
-6. Run backend tests:
+Open a second terminal:
 
-   ```bash
-   pytest
-   ```
+```powershell
+cd frontend
+npm install
+```
 
-   Database tables are automatically created on application startup via SQLAlchemy metadata. By default, SQLite stores data locally in `clouddeploy.db`, which can be customized via the `DATABASE_URL` environment variable.
+Configure the frontend environment in `frontend/.env`:
 
-   Authentication uses JWT access tokens signed with `JWT_SECRET_KEY` and passwords hashed with bcrypt:
-   - `POST /api/auth/register` — Create a new user account
-   - `POST /api/auth/login` — Log in and obtain JWT access token
-   - `GET /api/projects` — List user's projects (Requires Bearer token)
-   - `POST /api/projects` — Create a new user project (Requires Bearer token)
-   - `GET /api/projects/{project_id}` — Get project by ID (Owner-scoped, returns 404 for other users' projects)
-   - `POST /api/projects/{project_id}/upload` — Securely upload and extract application ZIP file (Requires Bearer token and owner access)
-   - `POST /api/projects/{project_id}/deployments` — Trigger asynchronous container build and deployment (Returns HTTP 202)
-   - `GET /api/deployments/{deployment_id}` — Get deployment status, container ID, and application URL
-   - `GET /api/deployments/{deployment_id}/logs` — Retrieve bounded build and container runtime logs
-   - `POST /api/deployments/{deployment_id}/stop` — Stop a running deployment container
-   - `POST /api/deployments/{deployment_id}/restart` — Restart a stopped container and verify health
+```env
+VITE_API_BASE_URL=http://localhost:8000
+```
 
-   Container & Deployment Safety:
-   - Server-allocated non-conflicting host port mapping.
-   - Resource-constrained execution (`--memory`, `--cpus`, `--pids-limit`).
-   - Non-privileged execution without host network mode or mounted Docker sockets.
-   - Automatic failure handling and container cleanup on failed health checks.
+Start the development server:
 
-   ZIP upload safety and constraints:
-   - Enforces a 25 MB compressed file limit (`MAX_UPLOAD_SIZE_BYTES`) and 100 MB expanded limit (`MAX_EXTRACTED_SIZE_BYTES`).
-   - Requires a root `Dockerfile` inside the archive.
-   - Detects and rejects path traversal (`..` or absolute paths), suspicious symlinks/special devices, excessive files (`MAX_FILE_COUNT`), and malformed archives.
-   - Extracts into server-controlled project workspaces (`WORKSPACE_DIR`), isolated outside the frontend.
+```powershell
+npm run dev
+```
 
----
+Open the local URL printed by Vite, typically `http://localhost:5173`.
 
-## Notes on Docker Integration Tests
+Restart Vite after changing environment variables.
 
-- The test suite includes both mocked Docker interactions and a real‑Docker integration test. The real‑Docker test requires a Docker daemon to be running on the host machine; if Docker is not available, the test will be skipped.
-- Uploaded applications are **trusted** to contain a valid `Dockerfile`. The system does not sandbox Docker builds beyond the built‑in resource limits (memory, CPUs, PID limits) and non‑root execution. Ensure you only upload containers you trust.
+## Running Tests
 
+### Backend
 
-### 3. Frontend Setup & Run
+From the `backend` directory with its virtual environment activated:
 
-1. In a separate terminal, navigate to the frontend directory:
+```bash
+pytest -q
+```
 
-   ```bash
-   cd frontend
-   ```
+### Frontend production build
 
-2. Install dependencies:
+From the `frontend` directory:
 
-   ```bash
-   npm install
-   ```
+```bash
+npm run build
+```
 
-3. Start the Vite development server:
+A successful build verifies frontend compilation; it does not by itself verify the complete application workflow.
 
-   ```bash
-   npm run dev
-   ```
+## Deployment Workflow
 
-4. Open your browser and navigate to:
-   ```text
-   http://localhost:5173
-   ```
+1. Register and log in.
+2. Create a project.
+3. Upload a ZIP containing the application source and a root-level `Dockerfile`.
+4. Start a deployment.
+5. Monitor its status and inspect logs.
+6. Open the application URL when available.
+7. Stop or restart the deployment as needed.
+
+Real deployment requires a functioning Docker Engine. Use the trusted sample application for initial testing.
+
+## Security Considerations
+
+- Passwords are hashed rather than stored as plaintext.
+- Protected API endpoints use JWT authentication and project ownership checks.
+- ZIP uploads are validated and subject to configured limits.
+- Container execution uses resource restrictions.
+- Never commit `.env` files containing secrets, JWT signing keys, passwords, or credentials.
+- This project is a learning MVP, not a hardened public multi-tenant hosting service. Arbitrary untrusted Docker builds require additional isolation and security review.
+
+## Current Status
+
+- Backend API and database foundation implemented.
+- Authentication, project ownership, and ZIP upload validation implemented.
+- Docker deployment engine and lifecycle controls implemented.
+- React dashboard integrated with the backend.
+- Backend tests reported: **40 passed, 1 skipped, 1 warning**.
+- Frontend production build reported successful.
+- Real Docker deployment remains to be verified in an environment with a running Docker daemon.
+- AWS hosting is planned but has not yet been verified or deployed.
+
+## Future Improvements
+
+- Verify the complete deployment workflow using a running Docker Engine.
+- Expand automated frontend and end-to-end testing.
+- Benchmark API latency and deployment reliability under controlled workloads.
+- Evaluate AWS hosting only after checking account eligibility, pricing, and security requirements.
+
+## License
+
+Choose a license before making this project open source. Until then, no license is specified.
