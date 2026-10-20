@@ -1,4 +1,4 @@
-# CloudDeploy Lite
+# CloudDeploy 
 
 CloudDeploy Lite is a beginner-friendly cloud deployment platform designed to simplify deploying and managing web applications on cloud infrastructure.
 
